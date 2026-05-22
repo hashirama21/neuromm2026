@@ -1,5 +1,8 @@
 # NeuroMM-2026 — EEGMamba Y-Architecture
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hashirama21/neuromm2026/blob/main/neuromm2026_pipeline.ipynb)
+[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/hashirama21/neuromm2026/blob/main/neuromm2026_pipeline.ipynb)
+
 Production-grade solution for the [NeuroMM-2026](https://2026.neuromm.org) multimodal seizure detection challenge.
 
 ---
