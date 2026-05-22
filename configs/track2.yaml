@@ -1,0 +1,76 @@
+##############################################################################
+# Track 2 — NMM-Context-IED
+# Binary spike detection with synchronized video. Primary metric: AUPRC.
+# Key innovation: Uncertainty-aware Gating (EEG confidence gates video use).
+##############################################################################
+
+defaults: [base]
+
+track: 2
+track_name: NMM-Context-IED
+metric: auprc
+use_video: true
+
+# ── Video backbones ────────────
+# Start with two best, add others only after ablation confirms +0.01 AUPRC
+video:
+  active_backbones: [videomae-large, dinov2-large]
+  all_backbones:
+    videomae-large:   {n_frames: 1, feat_dim: 1024}
+    dinov2-large:     {n_frames: 8, feat_dim: 1024}
+    siglip-base:      {n_frames: 8, feat_dim:  768}
+    clip-base:        {n_frames: 8, feat_dim:  512}
+    videomae-base:    {n_frames: 1, feat_dim:  768}
+    dinov2-base:      {n_frames: 8, feat_dim:  768}
+    timesformer-k400: {n_frames: 1, feat_dim:  768}
+  target_dim: 256                 # project all backbones to this dim
+
+# ── Uncertainty-aware Gating ───
+gating:
+  mc_dropout_passes: 5            # number of MC-Dropout forward passes
+  dropout_rate: 0.30              # dropout rate during MC estimation
+  entropy_threshold: 0.50         # normalised threshold (0=never gate, 1=always gate)
+  learnable_scale: true           # learnable calibration of gate threshold
+
+# ── Cross-attention ─────────────
+cross_attention:
+  n_heads: 8
+  n_layers: 2
+  dropout: 0.10
+
+# ── Head 
+head:
+  hidden_dims: [256, 128]
+  dropout: 0.40
+  output_dim: 1
+
+# ── Loss 
+loss:
+  primary: focal_poly
+  focal_gamma: 2.0
+  focal_alpha: 0.75
+  poly_epsilon: 1.0
+  focal_weight: 1.0
+  poly_weight: 0.50
+
+# ── Training 
+training:
+  epochs: 50
+  batch_size: 32                  # smaller due to video features
+  lr: 1.0e-4
+  backbone_lr: 1.0e-5
+  gating_lr: 1.0e-4
+  weight_decay: 1.0e-4
+  grad_clip: 1.0
+  early_stopping_patience: 10
+  scheduler: cosine
+  warmup_epochs: 3
+  freeze_backbone_epochs: 5       # warm-up: train gating first, then unfreeze backbone
+  positive_oversample_ratio: 4
+
+calibration:
+  method: isotonic
+
+ensemble:
+  n_models: 5
+  aggregation: mean

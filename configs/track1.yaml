@@ -1,0 +1,50 @@
+##############################################################################
+# Track 1 — NMM-Basic-IED
+# Binary spike detection, EEG only. Primary metric: AUPRC.
+##############################################################################
+
+defaults: [base]
+
+track: 1
+track_name: NMM-Basic-IED
+metric: auprc
+use_video: false
+
+# ── Head ───
+head:
+  type: mlp
+  hidden_dims: [256, 128]
+  dropout: 0.40
+  output_dim: 1
+
+# ── Loss ───
+loss:
+  primary: focal_poly             # focal_poly | ap_loss | focal_only
+  focal_gamma: 2.0
+  focal_alpha: 0.75
+  poly_epsilon: 1.0
+  focal_weight: 1.0
+  poly_weight: 0.50
+  use_ap_loss_aux: false          # add AP loss as auxiliary after ablation
+
+# ── Training 
+training:
+  epochs: 50
+  batch_size: 64
+  lr: 1.0e-4                      # head learning rate
+  backbone_lr: 1.0e-5             # backbone fine-tune (10x lower)
+  weight_decay: 1.0e-4
+  grad_clip: 1.0
+  early_stopping_patience: 10
+  scheduler: cosine
+  warmup_epochs: 3
+  positive_oversample_ratio: 4    # max neg:pos in batch
+
+# ── Calibration ────────────────
+calibration:
+  method: isotonic                # fit on OOF scores only — never on val set
+
+# ── Ensemble 
+ensemble:
+  n_models: 5                     # one per fold (add more seeds as budget allows)
+  aggregation: mean               # mean | stacking

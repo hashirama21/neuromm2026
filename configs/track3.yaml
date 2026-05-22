@@ -1,0 +1,57 @@
+##############################################################################
+# Track 3 — NMM-Source-IED
+# 5-class epileptogenic zone localization (positives only).
+# Primary metric: Weighted-F1.
+##############################################################################
+
+defaults: [base]
+
+track: 3
+track_name: NMM-Source-IED
+metric: weighted_f1
+use_video: true
+n_classes: 5                      # epileptogenic classes 1..5
+
+data_filter:
+  positives_only: true            # CRITICAL: Track 3 uses only label==1 samples
+
+#  Video (single backbone for late fusion) 
+video:
+  active_backbones: [dinov2-large]   # best for fine-grained spatial features
+  all_backbones:
+    dinov2-large: {n_frames: 8, feat_dim: 1024}
+  target_dim: 256
+
+# ── Head (temporal attention over channel GAT features) 
+head:
+  type: temporal_attention        # "temporal_attention" | "mlp"
+  hidden_dim: 256
+  n_heads: 4
+  n_layers: 2
+  dropout: 0.30
+  output_dim: 5                   # 5 classes
+
+# ── Loss 
+loss:
+  type: weighted_ce
+  label_smoothing: 0.10
+  # class_weights computed dynamically from training fold class frequencies
+
+# ── Training 
+training:
+  epochs: 60
+  batch_size: 32
+  lr: 5.0e-5
+  backbone_lr: 5.0e-6
+  weight_decay: 1.0e-4
+  grad_clip: 1.0
+  early_stopping_patience: 15
+  scheduler: cosine
+  warmup_epochs: 5
+
+calibration:
+  method: isotonic
+
+ensemble:
+  n_models: 5
+  aggregation: majority_vote      # for multiclass predictions

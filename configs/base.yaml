@@ -1,0 +1,107 @@
+##############################################################################
+# NeuroMM-2026 — Base Configuration
+# Shared by all tracks. Track configs inherit and override.
+##############################################################################
+
+project:
+  name: neuromm2026
+  seed: 42
+  num_workers: 4
+  device: auto                    # "auto" | "cuda" | "cpu"
+
+# Data paths 
+data:
+  root: data/
+  annotations: annotations/neuromm2026_train_val.csv
+  eeg_dir: processed/features/eeg
+  video_dir: processed/features/video
+  candidate_ids: candidate/candidate_ids.txt
+  candidate_eeg_dir: candidate/processed/features/eeg
+  candidate_video_dir: candidate/processed/features/video
+  n_channels: 29
+  n_timesteps: 2000
+  sample_rate: 500
+
+#  Cross-validation (CRITICAL: always patient-disjoint) ─
+cv:
+  n_splits: 5
+  group_col: subject_id
+
+#  EEGMamba Backbone 
+backbone:
+  arch: eegmamba                  # "eegmamba" | "patch_vit" (ablation)
+
+  # Stage 1 — Local temporal CNN (spike morphology 20-70ms)
+  cnn_out_channels: 64            # per-channel feature maps
+  cnn_kernel_size: 7              # ~14 ms at 500Hz
+  cnn_n_layers: 2                 # stack of conv layers
+  cnn_dropout: 0.10
+
+  # Stage 2 — Dynamic GAT (inter-channel propagation)
+  gat_hidden_dim: 128
+  gat_n_layers: 2
+  gat_n_heads: 8
+  gat_dropout: 0.10
+
+  # Stage 3 — EEGMamba temporal encoder
+  mamba_d_model: 256              # SSM hidden dimension
+  mamba_d_state: 16               # state space dimension
+  mamba_d_conv: 4                 # local conv kernel in Mamba
+  mamba_expand: 2                 # expansion factor
+  mamba_n_layers: 4               # number of Mamba blocks
+  mamba_dropout: 0.10
+
+  # Output
+  embed_dim: 256                  # final embedding dimension
+
+#  Multi-task Pretraining 
+pretrain:
+  epochs: 60
+  batch_size: 64
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  warmup_epochs: 5
+  scheduler: cosine               # cosine | cosine_restarts
+  grad_clip: 1.0
+
+  # Objective weights
+  lambda_binary: 1.0
+  lambda_recon: 0.30
+  lambda_labeltype: 0.50
+
+  # Masked reconstruction
+  mask_ratio: 0.20                # fraction of timesteps masked
+
+  # Foundation model loading
+  # Set to path of EEGMamba checkpoint, or null for scratch
+  foundation_ckpt: null           # e.g. "pretrained/eegmamba_base.pt"
+  lora_r: 16                      # LoRA rank (used when foundation_ckpt != null)
+  lora_alpha: 32
+  lora_dropout: 0.05
+
+  # Loss hyperparameters
+  focal_gamma: 2.0
+  focal_alpha: 0.75
+  poly_epsilon: 1.0
+
+#  Augmentations
+augmentation:
+  spec_augment:
+    enabled: true
+    max_time_mask: 200
+    num_time_masks: 2
+  gaussian_noise:
+    enabled: true
+    sigma: 0.05
+  mixup:
+    enabled: true
+    alpha: 0.20
+    same_label_only: false
+
+# Logging / Checkpointing
+logging:
+  use_wandb: false
+  wandb_entity: null
+  log_dir: logs/
+  save_dir: checkpoints/
+  save_top_k: 1                   # save best k checkpoints per fold

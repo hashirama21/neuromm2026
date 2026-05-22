@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (large files — ne pas committer)
+archives/
+processed/
+candidate/
+
+# Annotations (générées par prepare_data.py)
+annotations/neuromm2026_train_val.csv
+annotations/neuromm2026_index.csv
+annotations/neuromm2026_smoke_*.csv
+annotations/validation_report.json
+
+# Checkpoints et scalers (trop lourds)
+checkpoints/
+pretrained/
+
+# Soumissions
+submissions/
+
+# Logs
+logs/
+*.log
+
+# Secrets
+.env
+*.token
+
+# Divers
+*.DS_Store
+Thumbs.db
